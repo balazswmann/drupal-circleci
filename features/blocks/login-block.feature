@@ -8,4 +8,4 @@ I should be able to see the login block on the front page.
     Then I should see the heading "User login" in the "sidebar first"
     And I should see the text "Username" in the "sidebar first"
     And I should see the text "Password" in the "sidebar first"
-    And I should see the button "Log in" in the "sidebar first"
+    And I should see the button "Log in"
