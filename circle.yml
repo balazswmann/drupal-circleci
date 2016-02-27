@@ -1,0 +1,41 @@
+machine:
+  php:
+    version: 5.5.21
+
+dependencies:
+  pre:
+    # Set up a virtual host for the site.
+    - echo "sendmail_path=/bin/true" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+    - echo "memory_limit=256M" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+    - sudo cp circle/circle.conf /etc/apache2/sites-available/default
+    - sudo sed -e "s?%PROJECT_DIR%?$(pwd)/www?g" --in-place /etc/apache2/sites-available/default
+    - sudo a2enmod rewrite
+    - sudo service apache2 restart
+  override:
+    # Get packages with Composer.
+    - sudo composer self-update
+    - composer install --prefer-dist
+  post:
+    # Create tmp and private directories.
+    - mkdir -p /tmp/sandbox7
+    - mkdir -p /tmp/sandbox7-private
+    # Download and install the latest version of Drupal 7.
+    - bin/drush dl drupal-7 --drupal-project-rename=www
+    - mkdir www/sites/default/files
+    - chmod -R +rw www/sites/default/files
+    - cp circle/settings.php www/sites/default/settings.php
+    - sudo chown -R $(whoami):www-data www
+    - bin/drush -y -r www si standard --site-name=sandbox7 --account-name=admin --account-pass=admin
+    # Set tmp and private file system paths.
+    - bin/drush -r www vset --exact file_temporary_path "/tmp/sandbox7"
+    - bin/drush -r www vset --exact file_private_path "/tmp/sandbox7-private"
+  cache_directories:
+    - vendor
+    - bin
+
+test:
+  override:
+    # Run Behat with BEHAT_PARAMS.
+    - bin/behat:
+        environment:
+          BEHAT_PARAMS: $(<circle/behatp.json)
